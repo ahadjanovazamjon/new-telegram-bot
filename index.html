@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Choyxona</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; user-select: none; }
+    </style>
+</head>
+<body class="bg-gray-100 pb-20 text-gray-800">
+
+    <div class="bg-amber-800 text-white p-4 shadow-md text-center">
+        <h1 class="text-xl font-bold">🫖 The Choyxona</h1>
+    </div>
+
+    <div class="p-4" id="app">
+        <div id="tab-menu" class="tab-content">
+            <h2 class="text-lg font-bold mb-3">Menyu</h2>
+            <div id="product-list" class="grid grid-cols-1 gap-4"></div>
+        </div>
+
+        <div id="tab-rooms" class="tab-content hidden">
+            <h2 class="text-lg font-bold mb-3">Kabina va Xonalar</h2>
+            <div id="room-list" class="grid grid-cols-1 gap-4"></div>
+        </div>
+
+        <div id="tab-cart" class="tab-content hidden">
+            <h2 class="text-lg font-bold mb-3">Savat</h2>
+            <div id="cart-items" class="space-y-2 mb-4"></div>
+            <div class="bg-white p-4 rounded-lg shadow space-y-3">
+                <input type="text" id="cust-name" placeholder="Ismingiz" class="w-full border p-2 rounded">
+                <input type="text" id="cust-phone" placeholder="Telefon raqamingiz" class="w-full border p-2 rounded">
+                <select id="order-type" class="w-full border p-2 rounded">
+                    <option value="dine_in">Choyxonada deyish</option>
+                    <option value="delivery">Yetkazib berish</option>
+                </select>
+                <button onclick="submitOrder()" class="w-full bg-amber-800 text-white py-2 rounded font-bold">Buyurtmani tasdiqlash</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="fixed bottom-12 left-0 right-0 p-2 flex justify-center">
+        <button onclick="switchTab('cart')" id="cart-float-btn" class="bg-amber-600 text-white px-6 py-2 rounded-full shadow-lg font-bold">
+            Savat: 0 so'm
+        </button>
+    </div>
+
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2">
+        <button onclick="switchTab('menu')" class="text-center text-sm font-medium">🍽 Menyu</button>
+        <button onclick="switchTab('rooms')" class="text-center text-sm font-medium">🛋 Xonalar</button>
+        <button onclick="switchTab('cart')" class="text-center text-sm font-medium">🛒 Savat</button>
+    </nav>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        let cart = {};
+
+        document.addEventListener("DOMContentLoaded", () => {
+            loadMenu();
+            loadRooms();
+        });
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+        }
+
+        async function loadMenu() {
+            const res = await fetch('api.php?action=menu');
+            const products = await res.json();
+            const container = document.getElementById('product-list');
+            container.innerHTML = products.map(p => `
+                <div class="bg-white p-3 rounded-lg shadow flex items-center gap-3">
+                    <img src="${p.image_url}" class="w-20 h-20 object-cover rounded">
+                    <div class="flex-1">
+                        <h3 class="font-bold">${p.name}</h3>
+                        <p class="text-xs text-gray-500">${p.description}</p>
+                        <p class="font-bold text-amber-800 mt-1">${Number(p.price).toLocaleString()} so'm</p>
+                    </div>
+                    <button onclick="addToCart(${p.id}, '${p.name}', ${p.price})" class="bg-amber-800 text-white px-3 py-1 rounded text-sm">+</button>
+                </div>
+            `).join('');
+        }
+
+        async function loadRooms() {
+            const res = await fetch('api.php?action=rooms');
+            const rooms = await res.json();
+            const container = document.getElementById('room-list');
+            container.innerHTML = rooms.map(r => `
+                <div class="bg-white p-3 rounded-lg shadow">
+                    <img src="${r.image_url}" class="w-full h-32 object-cover rounded mb-2">
+                    <h3 class="font-bold text-lg">${r.name}</h3>
+                    <p class="text-xs text-gray-500">${r.description} (${r.capacity})</p>
+                    <p class="font-bold text-amber-800 mt-1">${Number(r.hourly_price).toLocaleString()} so'm / soat</p>
+                </div>
+            `).join('');
+        }
+
+        function addToCart(id, name, price) {
+            if (cart[id]) {
+                cart[id].quantity += 1;
+            } else {
+                cart[id] = { id, name, price, quantity: 1 };
+            }
+            updateCart();
+        }
+
+        function updateCart() {
+            let total = 0;
+            const container = document.getElementById('cart-items');
+            container.innerHTML = '';
+            
+            Object.values(cart).forEach(item => {
+                total += item.price * item.quantity;
+                container.innerHTML += `
+                    <div class="bg-white p-3 rounded shadow flex justify-between items-center">
+                        <span>${item.name} x ${item.quantity}</span>
+                        <span class="font-bold">${(item.price * item.quantity).toLocaleString()} so'm</span>
+                    </div>
+                `;
+            });
+
+            document.getElementById('cart-float-btn').innerText = `Savat: ${total.toLocaleString()} so'm`;
+        }
+
+        async function submitOrder() {
+            const name = document.getElementById('cust-name').value;
+            const phone = document.getElementById('cust-phone').value;
+            const type = document.getElementById('order-type').value;
+
+            const items = Object.values(cart).map(i => ({ product_id: i.id, quantity: i.quantity }));
+            
+            if (items.length === 0 || !name || !phone) {
+                alert("Iltimos, barcha maydonlarni to'ldiring va taom tanlang!");
+                return;
+            }
+
+            const payload = {
+                telegram_id: tg.initDataUnsafe?.user?.id || 1872175086,
+                full_name: name,
+                phone: phone,
+                type: type,
+                items: items
+            };
+
+            const res = await fetch('api.php?action=order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                alert("Buyurtma qabul qilindi!");
+                cart = {};
+                updateCart();
+                tg.close();
+            }
+        }
+    </script>
+</body>
+</html>
