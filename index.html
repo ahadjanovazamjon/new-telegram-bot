@@ -2,61 +2,147 @@
 <html lang="uz">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>The Choyxona</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; user-select: none; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif; 
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .active-tab { color: #b45309; border-top: 2px solid #b45309; font-weight: 700; }
+        .active-cat { background-color: #92400e; color: #ffffff; font-weight: 600; }
     </style>
 </head>
-<body class="bg-gray-100 pb-20 text-gray-800">
+<body class="bg-gray-50 pb-24 text-gray-900">
 
-    <div class="bg-amber-800 text-white p-4 shadow-md text-center">
-        <h1 class="text-xl font-bold">🫖 The Choyxona</h1>
-    </div>
-
-    <div class="p-4" id="app">
-        <div id="tab-menu" class="tab-content">
-            <h2 class="text-lg font-bold mb-3">Menyu</h2>
-            <div id="product-list" class="grid grid-cols-1 gap-4"></div>
-        </div>
-
-        <div id="tab-rooms" class="tab-content hidden">
-            <h2 class="text-lg font-bold mb-3">Kabina va Xonalar</h2>
-            <div id="room-list" class="grid grid-cols-1 gap-4"></div>
-        </div>
-
-        <div id="tab-cart" class="tab-content hidden">
-            <h2 class="text-lg font-bold mb-3">Savat</h2>
-            <div id="cart-items" class="space-y-2 mb-4"></div>
-            <div class="bg-white p-4 rounded-lg shadow space-y-3">
-                <input type="text" id="cust-name" placeholder="Ismingiz" class="w-full border p-2 rounded">
-                <input type="text" id="cust-phone" placeholder="Telefon raqamingiz" class="w-full border p-2 rounded">
-                <select id="order-type" class="w-full border p-2 rounded">
-                    <option value="dine_in">Choyxonada deyish</option>
-                    <option value="delivery">Yetkazib berish</option>
-                </select>
-                <button onclick="submitOrder()" class="w-full bg-amber-800 text-white py-2 rounded font-bold">Buyurtmani tasdiqlash</button>
+    <!-- Sticky Header -->
+    <header class="sticky top-0 z-40 bg-amber-900/95 backdrop-blur-md text-white p-4 shadow-md flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+            <span class="text-2xl">🫖</span>
+            <div>
+                <h1 class="text-lg font-extrabold tracking-wide leading-tight">The Choyxona</h1>
+                <p class="text-xs text-amber-200">Shinam va mazali dam olish</p>
             </div>
         </div>
-    </div>
+        <div class="bg-amber-800/80 px-3 py-1 rounded-full text-xs font-medium text-amber-100 flex items-center gap-1">
+            <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span> Ochiq
+        </div>
+    </header>
 
-    <div class="fixed bottom-12 left-0 right-0 p-2 flex justify-center">
-        <button onclick="switchTab('cart')" id="cart-float-btn" class="bg-amber-600 text-white px-6 py-2 rounded-full shadow-lg font-bold">
-            Savat: 0 so'm
+    <!-- Main Container -->
+    <main class="p-4 max-w-lg mx-auto" id="app">
+
+        <!-- TAB 1: MENU -->
+        <section id="tab-menu" class="tab-content space-y-4">
+            <!-- Search & Filter -->
+            <div class="space-y-3">
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                    <input type="text" id="search-input" oninput="filterProducts()" placeholder="Taom yoki ichimlik qidirish..." 
+                           class="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-700/50 shadow-sm transition">
+                </div>
+
+                <!-- Horizontal Categories -->
+                <div class="flex space-x-2 overflow-x-auto no-scrollbar py-1" id="category-bar">
+                    <button onclick="selectCategory('all')" id="cat-all" class="cat-btn active-cat whitespace-nowrap px-4 py-1.5 rounded-full text-xs bg-white text-gray-600 border border-gray-200 shadow-sm transition">
+                        📌 Barchasi
+                    </button>
+                    <button onclick="selectCategory(1)" id="cat-1" class="cat-btn whitespace-nowrap px-4 py-1.5 rounded-full text-xs bg-white text-gray-600 border border-gray-200 shadow-sm transition">
+                        🍲 Taomlar
+                    </button>
+                    <button onclick="selectCategory(2)" id="cat-2" class="cat-btn whitespace-nowrap px-4 py-1.5 rounded-full text-xs bg-white text-gray-600 border border-gray-200 shadow-sm transition">
+                        🍢 Kaboblar
+                    </button>
+                    <button onclick="selectCategory(3)" id="cat-3" class="cat-btn whitespace-nowrap px-4 py-1.5 rounded-full text-xs bg-white text-gray-600 border border-gray-200 shadow-sm transition">
+                        🫖 Ichimliklar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Product Grid -->
+            <div id="product-list" class="grid grid-cols-1 gap-3.5"></div>
+        </section>
+
+        <!-- TAB 2: ROOMS -->
+        <section id="tab-rooms" class="tab-content hidden space-y-4">
+            <div class="bg-amber-50 border border-amber-200 p-3.5 rounded-xl text-xs text-amber-900 flex items-start gap-2.5 shadow-sm">
+                <i class="fa-solid fa-circle-info text-amber-700 text-base mt-0.5"></i>
+                <span>Choyxona xonalarini oldindan band qiling. Qulayliklar va sig'imi bo'yicha tanlang.</span>
+            </div>
+            <div id="room-list" class="grid grid-cols-1 gap-4"></div>
+        </section>
+
+        <!-- TAB 3: CART -->
+        <section id="tab-cart" class="tab-content hidden space-y-4">
+            <h2 class="text-base font-bold text-gray-800 flex items-center justify-between">
+                <span>🛒 Tanlangan taomlar</span>
+                <span id="cart-clear-btn" onclick="clearCart()" class="text-xs text-red-500 font-normal cursor-pointer hidden"><i class="fa-regular fa-trash-can"></i> Tozalash</span>
+            </h2>
+
+            <div id="cart-items" class="space-y-2.5"></div>
+
+            <div id="checkout-form" class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-3 mt-4">
+                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Buyurtma Ma'lumotlari</h3>
+                <div>
+                    <label class="text-xs font-medium text-gray-600 block mb-1">Ismingiz</label>
+                    <input type="text" id="cust-name" placeholder="Masalan: Ali" class="w-full border border-gray-200 p-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-700/50">
+                </div>
+                <div>
+                    <label class="text-xs font-medium text-gray-600 block mb-1">Telefon raqam</label>
+                    <input type="tel" id="cust-phone" placeholder="+998 90 123 45 67" class="w-full border border-gray-200 p-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-700/50">
+                </div>
+                <div>
+                    <label class="text-xs font-medium text-gray-600 block mb-1">Xizmat turi</label>
+                    <select id="order-type" class="w-full border border-gray-200 p-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-700/50 bg-white">
+                        <option value="dine_in">🫖 Choyxonada deyish</option>
+                        <option value="delivery">🚖 Yetkazib berish (Dostavka)</option>
+                    </select>
+                </div>
+                <button onclick="submitOrder()" class="w-full bg-gradient-to-r from-amber-700 to-amber-900 active:scale-[0.98] text-white py-3 rounded-xl font-bold shadow-md shadow-amber-900/20 transition mt-2">
+                    Buyurtmani Tasdiqlash
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Floating Cart Bar -->
+    <div class="fixed bottom-16 left-0 right-0 p-3 z-30 flex justify-center pointer-events-none">
+        <button onclick="switchTab('cart')" id="cart-float-btn" class="pointer-events-auto bg-amber-800 active:scale-95 text-white px-5 py-2.5 rounded-full shadow-xl font-semibold text-sm flex items-center space-x-3 transition">
+            <i class="fa-solid fa-basket-shopping"></i>
+            <span id="float-total-text">Savat: 0 so'm</span>
         </button>
     </div>
 
-    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2">
-        <button onclick="switchTab('menu')" class="text-center text-sm font-medium">🍽 Menyu</button>
-        <button onclick="switchTab('rooms')" class="text-center text-sm font-medium">🛋 Xonalar</button>
-        <button onclick="switchTab('cart')" class="text-center text-sm font-medium">🛒 Savat</button>
+    <!-- Bottom Navigation -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200 flex justify-around py-2 z-40 text-gray-500">
+        <button onclick="switchTab('menu')" id="nav-menu" class="nav-btn active-tab flex-1 flex flex-col items-center py-1 text-xs">
+            <i class="fa-solid fa-utensils text-base mb-0.5"></i>
+            <span>Menyu</span>
+        </button>
+        <button onclick="switchTab('rooms')" id="nav-rooms" class="nav-btn flex-1 flex flex-col items-center py-1 text-xs">
+            <i class="fa-solid fa-couch text-base mb-0.5"></i>
+            <span>Xonalar</span>
+        </button>
+        <button onclick="switchTab('cart')" id="nav-cart" class="nav-btn flex-1 flex flex-col items-center py-1 text-xs relative">
+            <i class="fa-solid fa-cart-shopping text-base mb-0.5"></i>
+            <span>Savat</span>
+            <span id="cart-badge" class="absolute top-0 right-6 bg-amber-600 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold hidden">0</span>
+        </button>
     </nav>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
+
+        let allProducts = [];
+        let activeCategory = 'all';
         let cart = {};
 
         document.addEventListener("DOMContentLoaded", () => {
@@ -66,65 +152,159 @@
 
         function switchTab(tabName) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active-tab'));
+            
             document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+            document.getElementById(`nav-${tabName}`).classList.add('active-tab');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         async function loadMenu() {
-            const res = await fetch('api.php?action=menu');
-            const products = await res.json();
+            try {
+                const res = await fetch('api.php?action=menu');
+                allProducts = await res.json();
+                renderProducts(allProducts);
+            } catch(e) {
+                console.error("Menyu yuklashda xato:", e);
+            }
+        }
+
+        function renderProducts(products) {
             const container = document.getElementById('product-list');
-            container.innerHTML = products.map(p => `
-                <div class="bg-white p-3 rounded-lg shadow flex items-center gap-3">
-                    <img src="${p.image_url}" class="w-20 h-20 object-cover rounded">
-                    <div class="flex-1">
-                        <h3 class="font-bold">${p.name}</h3>
-                        <p class="text-xs text-gray-500">${p.description}</p>
-                        <p class="font-bold text-amber-800 mt-1">${Number(p.price).toLocaleString()} so'm</p>
+            if(products.length === 0) {
+                container.innerHTML = `<div class="text-center py-8 text-gray-400 text-sm">Taomlar topilmadi</div>`;
+                return;
+            }
+            container.innerHTML = products.map(p => {
+                const qty = cart[p.id] ? cart[p.id].quantity : 0;
+                return `
+                <div class="bg-white p-3 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3.5 transition hover:shadow-md">
+                    <img src="${p.image_url}" class="w-20 h-20 object-cover rounded-xl bg-gray-100 flex-shrink-0">
+                    <div class="flex-1 min-w-0">
+                        <h3 class="font-bold text-gray-800 text-sm truncate">${p.name}</h3>
+                        <p class="text-xs text-gray-400 line-clamp-1 mt-0.5">${p.description}</p>
+                        <p class="font-extrabold text-amber-800 text-sm mt-1.5">${Number(p.price).toLocaleString('uz-UZ')} so'm</p>
                     </div>
-                    <button onclick="addToCart(${p.id}, '${p.name}', ${p.price})" class="bg-amber-800 text-white px-3 py-1 rounded text-sm">+</button>
+                    <div class="flex items-center space-x-1.5">
+                        ${qty > 0 ? `
+                            <button onclick="changeQty(${p.id}, -1)" class="w-7 h-7 bg-gray-100 text-gray-700 rounded-lg flex items-center justify-center font-bold active:scale-90 transition">-</button>
+                            <span class="text-xs font-bold w-4 text-center">${qty}</span>
+                        ` : ''}
+                        <button onclick="changeQty(${p.id}, 1)" class="w-8 h-8 bg-amber-800 active:scale-90 text-white rounded-xl flex items-center justify-center shadow-sm shadow-amber-900/30 font-bold transition text-sm">
+                            +
+                        </button>
+                    </div>
                 </div>
-            `).join('');
+            `}).join('');
+        }
+
+        function selectCategory(catId) {
+            activeCategory = catId;
+            document.querySelectorAll('.cat-btn').forEach(btn => btn.classList.remove('active-cat'));
+            document.getElementById(`cat-${catId}`).classList.add('active-cat');
+            filterProducts();
+        }
+
+        function filterProducts() {
+            const query = document.getElementById('search-input').value.toLowerCase();
+            let filtered = allProducts;
+
+            if (activeCategory !== 'all') {
+                filtered = filtered.filter(p => p.category_id == activeCategory);
+            }
+
+            if (query.trim() !== '') {
+                filtered = filtered.filter(p => p.name.toLowerCase().includes(query) || p.description.toLowerCase().includes(query));
+            }
+
+            renderProducts(filtered);
         }
 
         async function loadRooms() {
-            const res = await fetch('api.php?action=rooms');
-            const rooms = await res.json();
-            const container = document.getElementById('room-list');
-            container.innerHTML = rooms.map(r => `
-                <div class="bg-white p-3 rounded-lg shadow">
-                    <img src="${r.image_url}" class="w-full h-32 object-cover rounded mb-2">
-                    <h3 class="font-bold text-lg">${r.name}</h3>
-                    <p class="text-xs text-gray-500">${r.description} (${r.capacity})</p>
-                    <p class="font-bold text-amber-800 mt-1">${Number(r.hourly_price).toLocaleString()} so'm / soat</p>
-                </div>
-            `).join('');
-        }
-
-        function addToCart(id, name, price) {
-            if (cart[id]) {
-                cart[id].quantity += 1;
-            } else {
-                cart[id] = { id, name, price, quantity: 1 };
+            try {
+                const res = await fetch('api.php?action=rooms');
+                const rooms = await res.json();
+                const container = document.getElementById('room-list');
+                container.innerHTML = rooms.map(r => `
+                    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                        <img src="${r.image_url}" class="w-full h-36 object-cover">
+                        <div class="p-3.5">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h3 class="font-bold text-gray-800 text-base">${r.name}</h3>
+                                    <p class="text-xs text-gray-500 mt-0.5"><i class="fa-solid fa-users text-amber-700"></i> ${r.capacity}</p>
+                                </div>
+                                <span class="bg-amber-100 text-amber-900 text-xs px-2.5 py-1 rounded-full font-bold">${Number(r.hourly_price).toLocaleString('uz-UZ')} so'm/soat</span>
+                            </div>
+                            <p class="text-xs text-gray-400 mt-2">${r.description}</p>
+                        </div>
+                    </div>
+                `).join('');
+            } catch(e) {
+                console.error("Xonalarni yuklashda xato:", e);
             }
-            updateCart();
         }
 
-        function updateCart() {
+        function changeQty(id, delta) {
+            const prod = allProducts.find(p => p.id == id);
+            if (!prod) return;
+
+            if (!cart[id]) {
+                cart[id] = { id: prod.id, name: prod.name, price: prod.price, quantity: 0 };
+            }
+
+            cart[id].quantity += delta;
+
+            if (cart[id].quantity <= 0) {
+                delete cart[id];
+            }
+
+            updateCartUI();
+            filterProducts();
+        }
+
+        function updateCartUI() {
             let total = 0;
+            let count = 0;
             const container = document.getElementById('cart-items');
             container.innerHTML = '';
-            
-            Object.values(cart).forEach(item => {
-                total += item.price * item.quantity;
-                container.innerHTML += `
-                    <div class="bg-white p-3 rounded shadow flex justify-between items-center">
-                        <span>${item.name} x ${item.quantity}</span>
-                        <span class="font-bold">${(item.price * item.quantity).toLocaleString()} so'm</span>
-                    </div>
-                `;
-            });
 
-            document.getElementById('cart-float-btn').innerText = `Savat: ${total.toLocaleString()} so'm`;
+            const items = Object.values(cart);
+            if (items.length === 0) {
+                container.innerHTML = `<div class="bg-white p-6 rounded-2xl text-center text-gray-400 text-xs border border-gray-100">Savat hali bo'sh</div>`;
+                document.getElementById('cart-clear-btn').classList.add('hidden');
+            } else {
+                document.getElementById('cart-clear-btn').classList.remove('hidden');
+                items.forEach(item => {
+                    const subtotal = item.price * item.quantity;
+                    total += subtotal;
+                    count += item.quantity;
+                    container.innerHTML += `
+                        <div class="bg-white p-3 rounded-xl border border-gray-100 flex justify-between items-center shadow-sm">
+                            <div>
+                                <h4 class="font-bold text-gray-800 text-xs">${item.name}</h4>
+                                <p class="text-[10px] text-gray-400">${Number(item.price).toLocaleString('uz-UZ')} so'm x ${item.quantity}</p>
+                            </div>
+                            <span class="font-extrabold text-amber-800 text-xs">${Number(subtotal).toLocaleString('uz-UZ')} so'm</span>
+                        </div>
+                    `;
+                });
+            }
+
+            document.getElementById('float-total-text').innerText = `Savat: ${Number(total).toLocaleString('uz-UZ')} so'm`;
+            const badge = document.getElementById('cart-badge');
+            if (count > 0) {
+                badge.innerText = count;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        function clearCart() {
+            cart = {};
+            updateCartUI();
+            filterProducts();
         }
 
         async function submitOrder() {
@@ -134,8 +314,12 @@
 
             const items = Object.values(cart).map(i => ({ product_id: i.id, quantity: i.quantity }));
             
-            if (items.length === 0 || !name || !phone) {
-                alert("Iltimos, barcha maydonlarni to'ldiring va taom tanlang!");
+            if (items.length === 0) {
+                alert("Savat bo'sh! Iltimos taom tanlang.");
+                return;
+            }
+            if (!name || !phone) {
+                alert("Iltimos, ismingiz va telefon raqamingizni kiriting!");
                 return;
             }
 
@@ -147,17 +331,22 @@
                 items: items
             };
 
-            const res = await fetch('api.php?action=order', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+            try {
+                const res = await fetch('api.php?action=order', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
 
-            if (res.ok) {
-                alert("Buyurtma qabul qilindi!");
-                cart = {};
-                updateCart();
-                tg.close();
+                if (res.ok) {
+                    alert("Buyurtmangiz qabul qilindi! Tez orada bog'lanamiz.");
+                    clearCart();
+                    tg.close();
+                } else {
+                    alert("Buyurtma yuborishda xatolik yuz berdi.");
+                }
+            } catch(e) {
+                alert("Server bilan aloqa uzildi.");
             }
         }
     </script>
